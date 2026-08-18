@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>Programação de Equipes</title>
+<meta name="theme-color" content="#0F172A">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Equipes">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+  :root{
+    --bg: #0F172A;
+    --card: #16213A;
+    --card-border: #26324A;
+    --card2: #1D2A47;
+    --text: #F1F5F9;
+    --text-dim: #93A0B8;
+    --accent: #A78BFA;
+    --accent-dim: #6D4FC4;
+    --ok: #22C55E;
+    --danger: #EF4444;
+    --mono: ui-monospace, "SF Mono", "Cascadia Mono", "Roboto Mono", Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background: var(--bg);
+    background-image:
+      linear-gradient(var(--card-border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--card-border) 1px, transparent 1px);
+    background-size: 28px 28px;
+    background-attachment: fixed;
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    padding: 20px 16px 48px;
+  }
+  .wrap{ max-width: 520px; margin: 0 auto; }
+
+  header{ margin-bottom: 20px; }
+  .eyebrow{
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    display:flex; align-items:center; gap:8px;
+  }
+  .eyebrow::before{
+    content:""; width:8px; height:8px; background:var(--accent); display:inline-block;
+  }
+  h1{
+    font-family: var(--mono);
+    font-size: 22px;
+    font-weight: 700;
+    margin: 6px 0 2px;
+    letter-spacing: -0.01em;
+  }
+  .sub{ color: var(--text-dim); font-size: 13px; }
+
+  .card{
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 14px;
+    padding: 18px;
+    margin-bottom: 14px;
+  }
+  label{
+    display:block;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+  }
+  .field{ margin-bottom: 16px; }
+  .field:last-child{ margin-bottom: 0; }
+  input[type=text], input[type=date]{
+    width: 100%;
+    background: #0E1729;
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 16px;
+    padding: 11px 12px;
+    outline: none;
+    transition: border-color .15s;
+  }
+  input:focus{ border-color: var(--accent); }
+
+  .top-actions{ display:flex; gap:10px; margin-bottom: 14px; }
+
+  .team-card{
+    background: var(--card2);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 12px;
+  }
+  .team-card-header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom: 12px;
+  }
+  .team-card-title{
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+  .team-card-btns{ display:flex; gap:6px; }
+  .icon-btn{
+    background: transparent;
+    border: 1px solid var(--card-border);
+    color: var(--text-dim);
+    font-size: 13px;
+    line-height: 1;
+    padding: 6px 10px;
+    border-radius: 7px;
+    cursor:pointer;
+  }
+  .icon-btn:active{ transform: scale(0.96); }
+  .icon-btn.danger{ color: var(--danger); }
+  .team-field{ margin-bottom: 10px; }
+  .team-field:last-child{ margin-bottom: 0; }
+  .team-field label{
+    font-size: 10px;
+    margin-bottom: 4px;
+  }
+  .team-field input{
+    padding: 9px 10px;
+    font-size: 14.5px;
+  }
+
+  .btn-add{
+    background: transparent;
+    border: 1px dashed var(--accent-dim);
+    color: var(--accent);
+    font-size: 13px;
+    font-weight: 600;
+    padding: 12px;
+    border-radius: 8px;
+    width: 100%;
+    cursor:pointer;
+  }
+  .btn-add:active{ transform: scale(0.98); }
+
+  .actions{ display:flex; gap:10px; margin-top: 4px; }
+  button{
+    font-family: var(--sans);
+    font-weight: 600;
+    font-size: 15px;
+    border-radius: 10px;
+    border: none;
+    padding: 14px 16px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  button:active{ transform: scale(0.98); }
+  .btn-primary{
+    background: var(--accent);
+    color: #16092E;
+    flex: 1;
+  }
+  .btn-ghost{
+    background: transparent;
+    color: var(--text-dim);
+    border: 1px solid var(--card-border);
+    flex: 1;
+  }
+  .btn-ghost.full{ width: 100%; }
+
+  #preview-section{ display:none; }
+  #preview-section.show{ display:block; }
+  pre#preview{
+    font-family: var(--sans);
+    font-size: 14.5px;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    color: var(--text);
+    line-height: 1.5;
+    margin: 0 0 14px;
+    background: #0E1729;
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    padding: 14px;
+  }
+  .toast{
+    position: fixed;
+    left: 50%; bottom: 26px;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--ok);
+    color: #06210F;
+    font-weight: 700;
+    font-size: 14px;
+    padding: 12px 18px;
+    border-radius: 999px;
+    opacity: 0;
+    transition: opacity .2s, transform .2s;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+  .toast.show{ opacity: 1; transform: translateX(-50%) translateY(0); }
+  .toast.err{ background: var(--danger); color: #2A0A0A; }
+
+  footer{
+    text-align:center;
+    color: var(--card-border);
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    margin-top: 28px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">Esquadrimed &mdash; instalação</div>
+    <h1>Programação de Equipes</h1>
+    <div class="sub">Defina pra onde cada equipe vai amanhã e gere o texto pro WhatsApp.</div>
+  </header>
+
+  <div class="card" id="form-card">
+    <div class="field">
+      <label for="data">Data</label>
+      <input type="date" id="data">
+    </div>
+
+    <button type="button" class="btn-ghost full" id="btn-carregar-ontem" style="margin-bottom:16px;">↺ Carregar equipes de ontem</button>
+
+    <div id="team-cards"></div>
+    <button type="button" class="btn-add" id="btn-add-team">+ Adicionar líder</button>
+
+    <div class="actions" style="margin-top:18px;">
+      <button class="btn-primary" id="btn-gerar">Gerar e copiar</button>
+    </div>
+  </div>
+
+  <div class="card" id="preview-section">
+    <label>Prévia</label>
+    <pre id="preview"></pre>
+    <div class="actions">
+      <button class="btn-primary" id="btn-copiar">Copiar novamente</button>
+      <button class="btn-ghost" id="btn-novo">Novo relatório</button>
+    </div>
+  </div>
+
+  <footer>Funciona 100% offline &middot; nada sai do aparelho</footer>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  const dataEl = $('data');
+  const teamCardsEl = $('team-cards');
+  const previewSection = $('preview-section'), previewEl = $('preview');
+  const toastEl = $('toast');
+  const STORAGE_KEY = 'equipes_ultima_lista';
+
+  function nextBusinessDay(){
+    const hoje = new Date();
+    let dia = new Date(hoje);
+    dia.setDate(dia.getDate() + 1);
+    while (dia.getDay() === 0 || dia.getDay() === 6) {
+      dia.setDate(dia.getDate() + 1);
+    }
+    return dia;
+  }
+  function todayISO(date){
+    const d = date || new Date();
+    const tz = d.getTimezoneOffset();
+    const local = new Date(d.getTime() - tz*60000);
+    return local.toISOString().slice(0,10);
+  }
+  dataEl.value = todayISO(nextBusinessDay());
+
+  function fmtDataBR(iso){
+    if(!iso) return '';
+    const [y,m,d] = iso.split('-');
+    return `${d}/${m}`;
+  }
+
+  const CAMPOS = [
+    {key:'lider', label:'Líder', placeholder:'Gilberto'},
+    {key:'obra', label:'Obra', placeholder:'Satc'},
+    {key:'cidade', label:'Cidade', placeholder:'Criciúma'},
+    {key:'veiculo', label:'Veículo', placeholder:'Iveco 09'},
+    {key:'equipe', label:'Equipe', placeholder:'Fernando'}
+  ];
+
+  function renumerar(){
+    Array.from(teamCardsEl.children).forEach((card, i) => {
+      card.querySelector('.team-card-title').textContent = `Equipe ${i+1}`;
+    });
+  }
+
+  function addTeamCard(data, focus){
+    data = data || {};
+    const card = document.createElement('div');
+    card.className = 'team-card';
+
+    const fieldsHtml = CAMPOS.map(c => `
+      <div class="team-field">
+        <label>${c.label}</label>
+        <input type="text" class="tc-${c.key}" placeholder="${c.placeholder}" autocomplete="off" value="${(data[c.key]||'').replace(/"/g,'&quot;')}">
+      </div>
+    `).join('');
+
+    card.innerHTML = `
+      <div class="team-card-header">
+        <span class="team-card-title">Equipe</span>
+        <div class="team-card-btns">
+          <button type="button" class="icon-btn btn-dup">Duplicar</button>
+          <button type="button" class="icon-btn danger btn-rm">Remover</button>
+        </div>
+      </div>
+      ${fieldsHtml}
+    `;
+
+    card.querySelector('.btn-rm').addEventListener('click', () => {
+      card.remove();
+      if (!teamCardsEl.children.length) addTeamCard({}, false);
+      renumerar();
+    });
+    card.querySelector('.btn-dup').addEventListener('click', () => {
+      const atual = lerCard(card);
+      addTeamCard(atual, true);
+      renumerar();
+    });
+
+    teamCardsEl.appendChild(card);
+    renumerar();
+    if (focus) card.querySelector('.tc-lider').focus();
+  }
+
+  function lerCard(card){
+    const obj = {};
+    CAMPOS.forEach(c => {
+      obj[c.key] = card.querySelector(`.tc-${c.key}`).value.trim();
+    });
+    return obj;
+  }
+
+  function todosCards(){
+    return Array.from(teamCardsEl.querySelectorAll('.team-card')).map(lerCard)
+      .filter(o => Object.values(o).some(v => v));
+  }
+
+  function resetCards(){
+    teamCardsEl.innerHTML = '';
+    addTeamCard({}, false);
+  }
+  resetCards();
+
+  $('btn-add-team').addEventListener('click', () => addTeamCard({}, true));
+
+  $('btn-carregar-ontem').addEventListener('click', () => {
+    let salvo = null;
+    try{ salvo = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null'); }catch(e){}
+    if (!salvo || !salvo.length){
+      showToast('Nenhuma lista salva ainda.', true);
+      return;
+    }
+    teamCardsEl.innerHTML = '';
+    salvo.forEach(d => addTeamCard(d, false));
+    renumerar();
+    showToast('Equipes de ontem carregadas.');
+  });
+
+  function montarTexto(){
+    const linhas = [];
+    linhas.push(`DATA: ${fmtDataBR(dataEl.value)}`);
+    linhas.push('');
+    const equipes = todosCards();
+    if (equipes.length){
+      equipes.forEach((eq, i) => {
+        linhas.push(`Líder: ${eq.lider || '-'}`);
+        linhas.push(`Obra: ${eq.obra || '-'}`);
+        linhas.push(`Cidade: ${eq.cidade || '-'}`);
+        linhas.push(`Veículo: ${eq.veiculo || '-'}`);
+        linhas.push(`Equipe: ${eq.equipe || '-'}`);
+        if (i < equipes.length - 1) linhas.push('');
+      });
+    } else {
+      linhas.push('-');
+    }
+    return linhas.join('\n');
+  }
+
+  function showToast(msg, isErr){
+    toastEl.textContent = msg;
+    toastEl.classList.toggle('err', !!isErr);
+    toastEl.classList.add('show');
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(()=> toastEl.classList.remove('show'), 2200);
+  }
+
+  async function copiar(texto){
+    try{
+      await navigator.clipboard.writeText(texto);
+      showToast('Copiado! Abra o WhatsApp e cole.');
+    }catch(e){
+      const ta = document.createElement('textarea');
+      ta.value = texto;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.focus(); ta.select();
+      try{
+        document.execCommand('copy');
+        showToast('Copiado! Abra o WhatsApp e cole.');
+      }catch(e2){
+        showToast('Não consegui copiar automático. Selecione o texto acima.', true);
+      }
+      document.body.removeChild(ta);
+    }
+  }
+
+  function gerar(){
+    const equipes = todosCards();
+    if (!equipes.length){
+      showToast('Preencha ao menos um líder.', true);
+      return;
+    }
+    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(equipes)); }catch(e){}
+    const texto = montarTexto();
+    previewEl.textContent = texto;
+    previewSection.classList.add('show');
+    previewSection.scrollIntoView({behavior:'smooth', block:'start'});
+    copiar(texto);
+  }
+
+  $('btn-gerar').addEventListener('click', gerar);
+  $('btn-copiar').addEventListener('click', ()=> copiar(previewEl.textContent));
+  $('btn-novo').addEventListener('click', ()=>{
+    dataEl.value = todayISO(nextBusinessDay());
+    resetCards();
+    previewSection.classList.remove('show');
+  });
+
+  if('serviceWorker' in navigator){
+    window.addEventListener('load', ()=>{
+      navigator.serviceWorker.register('sw.js').catch(()=>{});
+    });
+  }
+})();
+</script>
+</body>
+</html>
