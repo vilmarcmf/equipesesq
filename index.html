@@ -126,6 +126,7 @@
   .chip.selected{ background:var(--accent); border-color:var(--accent); color:#16092E; }
   .chip.qa-chip{ border-style:dashed; border-color:var(--accent-dim); color:var(--accent); }
   .chip:active{ transform: scale(0.96); }
+  .chip.has-dup{ border-color: #FBBF24; }
 
   .team-card{
     background: var(--card2);
@@ -216,7 +217,7 @@
   <header>
     <div class="eyebrow">Esquadrimed &mdash; instalação</div>
     <h1>Programação de Equipes</h1>
-    <div class="sub">Preencha os campos e gere o texto para copiar e colar.</div>
+    <div class="sub">Preencha os campos e gere o texto para copiar e colar..</div>
   </header>
 
   <div class="seg" id="tab-seg">
@@ -533,29 +534,88 @@
     return html;
   }
 
+  // ============================================================
+  //  VALIDAÇÃO DE DUPLICATAS: líder, veículo e ajudantes
+  // ============================================================
   function checkDuplicatas(){
     const cards = Array.from(teamCardsEl.querySelectorAll('.team-card'));
-    ['tc-lider','tc-veiculo'].forEach(cls => {
-      const contagem = {};
-      cards.forEach(card => {
-        const val = card.querySelector('.' + cls).value;
-        if (val) contagem[val] = (contagem[val] || 0) + 1;
-      });
-      cards.forEach(card => {
-        const sel = card.querySelector('.' + cls);
-        const warn = sel.parentElement.querySelector('.dup-warning');
-        const val = sel.value;
-        const duplicado = val && contagem[val] > 1;
-        sel.classList.toggle('has-dup', !!duplicado);
-        if (duplicado){
-          warn.style.display = '';
-          warn.textContent = cls === 'tc-lider'
-            ? '⚠ Esse líder já está em outra equipe hoje'
-            : '⚠ Esse veículo já está em outra equipe hoje';
-        } else {
-          warn.style.display = 'none';
-        }
-      });
+
+    // 1) Líderes
+    const liderContagem = {};
+    cards.forEach(card => {
+      const val = card.querySelector('.tc-lider').value;
+      if (val) liderContagem[val] = (liderContagem[val] || 0) + 1;
+    });
+    cards.forEach(card => {
+      const sel = card.querySelector('.tc-lider');
+      const warn = sel.parentElement.querySelector('.dup-warning');
+      const val = sel.value;
+      const duplicado = val && liderContagem[val] > 1;
+      sel.classList.toggle('has-dup', !!duplicado);
+      if (duplicado){
+        warn.style.display = '';
+        warn.textContent = '⚠ Esse líder já está em outra equipe hoje';
+      } else {
+        warn.style.display = 'none';
+      }
+    });
+
+    // 2) Veículos
+    const veicContagem = {};
+    cards.forEach(card => {
+      const val = card.querySelector('.tc-veiculo').value;
+      if (val) veicContagem[val] = (veicContagem[val] || 0) + 1;
+    });
+    cards.forEach(card => {
+      const sel = card.querySelector('.tc-veiculo');
+      const warn = sel.parentElement.querySelector('.dup-warning');
+      const val = sel.value;
+      const duplicado = val && veicContagem[val] > 1;
+      sel.classList.toggle('has-dup', !!duplicado);
+      if (duplicado){
+        warn.style.display = '';
+        warn.textContent = '⚠ Esse veículo já está em outra equipe hoje';
+      } else {
+        warn.style.display = 'none';
+      }
+    });
+
+    // 3) Ajudantes (equipe) – verifica duplicatas entre os chips selecionados
+    // Coleta todos os nomes selecionados em cada equipe
+    const todosAjudantes = [];
+    cards.forEach(card => {
+      const selecionados = card._equipeSelecionada;
+      if (selecionados.size) {
+        selecionados.forEach(nome => {
+          todosAjudantes.push({ nome, card });
+        });
+      }
+    });
+    // Conta ocorrências
+    const contagemAjudantes = {};
+    todosAjudantes.forEach(item => {
+      contagemAjudantes[item.nome] = (contagemAjudantes[item.nome] || 0) + 1;
+    });
+    // Para cada card, verifica se algum nome selecionado está duplicado globalmente
+    cards.forEach(card => {
+      const warn = card.querySelector('.dup-warning-equipe');
+      const selecionados = card._equipeSelecionada;
+      let duplicado = false;
+      let nomesDuplicados = [];
+      if (selecionados.size) {
+        selecionados.forEach(nome => {
+          if (contagemAjudantes[nome] > 1) {
+            duplicado = true;
+            nomesDuplicados.push(nome);
+          }
+        });
+      }
+      if (duplicado) {
+        warn.style.display = '';
+        warn.textContent = `⚠ Ajudante(s) duplicado(s): ${nomesDuplicados.join(', ')}`;
+      } else {
+        warn.style.display = 'none';
+      }
     });
   }
 
@@ -581,6 +641,7 @@
         const nome = chip.dataset.nome;
         if (selecionados.has(nome)) selecionados.delete(nome); else selecionados.add(nome);
         chip.classList.toggle('selected');
+        checkDuplicatas(); // atualiza avisos após mudança
       });
     });
     wrap.querySelector('.qa-chip').addEventListener('click', () => abrirQuickAddEquipe(card));
@@ -605,6 +666,7 @@
       if (!ok) showToast('Já está cadastrado.', true);
       card._equipeSelecionada.add(valor);
       renderChips(card);
+      checkDuplicatas();
     };
     wrap.querySelector('.btn-primary').addEventListener('click', confirmar);
     wrap.querySelector('.btn-ghost').addEventListener('click', cancelar);
@@ -649,6 +711,7 @@
       <div class="team-field">
         <label>Equipe (ajudantes)</label>
         <div class="chips chips-wrap"></div>
+        <div class="dup-warning dup-warning-equipe" style="display:none;"></div>
       </div>
     `;
 
@@ -737,18 +800,8 @@
     return encontrada ? encontrada.rota : 'Z';
   }
 
-  // ============================================================
-  //  FORMATO FINAL DO TEXTO – conforme solicitado
-  //  📅 20/08/2026
-  //  👷 *Adrian*
-  //  Obra: 
-  //  Cidade: 
-  //  Veículo: 
-  //  Equipe: 
-  // ============================================================
   function montarTexto(){
     const linhas = [];
-    // Data no formato dd/mm/aaaa
     const dataISO = dataEl.value;
     if (dataISO) {
       const [y, m, d] = dataISO.split('-');
@@ -770,16 +823,14 @@
           cidadeExibida = '';
         }
         const rota = rotaDaCidade(eq.cidade);
-        // Líder com negrito (markdown) e sem a palavra "Líder:"
         linhas.push(`👷 *${eq.lider || 'Líder não definido'}*`);
         linhas.push(`Obra: ${eq.obra || ''}`);
         const cidadeComRota = cidadeExibida + (rota ? ` (${rota})` : '');
         linhas.push(`Cidade: ${cidadeComRota}`);
         linhas.push(`Veículo: ${eq.veiculo || ''}`);
         linhas.push(`Equipe: ${eq.equipe.length ? eq.equipe.join(', ') : ''}`);
-        linhas.push(''); // linha em branco entre equipes
+        linhas.push('');
       });
-      // Remove última linha em branco extra
       if (linhas.length > 0 && linhas[linhas.length - 1] === '') {
         linhas.pop();
       }
@@ -812,7 +863,6 @@
   }
 
   function gerar(){
-    // Validação: se alguma cidade for "Outra" e o campo estiver vazio, avisar
     const cards = Array.from(teamCardsEl.querySelectorAll('.team-card'));
     let cidadeVazia = false;
     cards.forEach(card => {
