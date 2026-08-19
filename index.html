@@ -42,7 +42,7 @@
   }
   .wrap{ max-width: 520px; margin: 0 auto; }
 
-  header{ margin-bottom: 20px; }
+  header{ margin-bottom: 16px; }
   .eyebrow{
     font-family: var(--mono);
     font-size: 11px;
@@ -63,6 +63,20 @@
   }
   .sub{ color: var(--text-dim); font-size: 13px; }
 
+  .seg{
+    display:flex; gap:6px; background:#0E1729; border:1px solid var(--card-border);
+    border-radius:10px; padding:4px; margin-bottom:16px;
+  }
+  .seg-btn{
+    flex:1; background:transparent; border:none; color:var(--text-dim);
+    font-family: var(--sans); font-weight:600; font-size:13.5px; padding:10px 6px;
+    border-radius:7px; cursor:pointer;
+  }
+  .seg-btn.active{ background:var(--accent); color:#16092E; }
+
+  .tab{ display:none; }
+  .tab.active{ display:block; }
+
   .card{
     background: var(--card);
     border: 1px solid var(--card-border);
@@ -81,7 +95,7 @@
   }
   .field{ margin-bottom: 16px; }
   .field:last-child{ margin-bottom: 0; }
-  input[type=text], input[type=date]{
+  input[type=text], input[type=date], select{
     width: 100%;
     background: #0E1729;
     border: 1px solid var(--card-border);
@@ -93,9 +107,25 @@
     outline: none;
     transition: border-color .15s;
   }
-  input:focus{ border-color: var(--accent); }
+  select{ appearance:none; -webkit-appearance:none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='9'%3E%3Cpath d='M1 1l6 6 6-6' stroke='%2393A0B8' stroke-width='2' fill='none'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position: right 12px center; padding-right: 34px; }
+  input:focus, select:focus{ border-color: var(--accent); }
 
   .top-actions{ display:flex; gap:10px; margin-bottom: 14px; }
+
+  .select-row{ display:flex; gap:6px; }
+  .select-row select{ flex:1; }
+  .qa-inline{ display:flex; gap:6px; }
+  .qa-inline input{ flex:1; }
+  .qa-inline button{ flex-shrink:0; padding: 0 14px; font-size:13px; }
+
+  .chips{ display:flex; flex-wrap:wrap; gap:7px; }
+  .chip{
+    background:#0E1729; border:1px solid var(--card-border); color:var(--text-dim);
+    font-size:13px; font-weight:600; padding:8px 12px; border-radius:999px; cursor:pointer;
+  }
+  .chip.selected{ background:var(--accent); border-color:var(--accent); color:#16092E; }
+  .chip.qa-chip{ border-style:dashed; border-color:var(--accent-dim); color:var(--accent); }
+  .chip:active{ transform: scale(0.96); }
 
   .team-card{
     background: var(--card2);
@@ -105,121 +135,78 @@
     margin-bottom: 12px;
   }
   .team-card-header{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    margin-bottom: 12px;
+    display:flex; align-items:center; justify-content:space-between; margin-bottom: 12px;
   }
   .team-card-title{
-    font-family: var(--mono);
-    font-size: 11px;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--accent);
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--accent);
   }
   .team-card-btns{ display:flex; gap:6px; }
   .icon-btn{
-    background: transparent;
-    border: 1px solid var(--card-border);
-    color: var(--text-dim);
-    font-size: 13px;
-    line-height: 1;
-    padding: 6px 10px;
-    border-radius: 7px;
-    cursor:pointer;
+    background: transparent; border: 1px solid var(--card-border); color: var(--text-dim);
+    font-size: 13px; line-height: 1; padding: 6px 10px; border-radius: 7px; cursor:pointer;
   }
   .icon-btn:active{ transform: scale(0.96); }
   .icon-btn.danger{ color: var(--danger); }
   .team-field{ margin-bottom: 10px; }
   .team-field:last-child{ margin-bottom: 0; }
-  .team-field label{
-    font-size: 10px;
-    margin-bottom: 4px;
+  .team-field label{ font-size: 10px; margin-bottom: 4px; }
+  .team-field input, .team-field select{ padding: 9px 10px; font-size: 14.5px; }
+  .dup-warning{
+    color: #FBBF24; font-size: 11.5px; margin-top: 5px; font-weight: 600;
   }
-  .team-field input{
-    padding: 9px 10px;
-    font-size: 14.5px;
-  }
+  select.has-dup{ border-color: #FBBF24; }
 
   .btn-add{
-    background: transparent;
-    border: 1px dashed var(--accent-dim);
-    color: var(--accent);
-    font-size: 13px;
-    font-weight: 600;
-    padding: 12px;
-    border-radius: 8px;
-    width: 100%;
-    cursor:pointer;
+    background: transparent; border: 1px dashed var(--accent-dim); color: var(--accent);
+    font-size: 13px; font-weight: 600; padding: 12px; border-radius: 8px; width: 100%; cursor:pointer;
   }
   .btn-add:active{ transform: scale(0.98); }
 
   .actions{ display:flex; gap:10px; margin-top: 4px; }
   button{
-    font-family: var(--sans);
-    font-weight: 600;
-    font-size: 15px;
-    border-radius: 10px;
-    border: none;
-    padding: 14px 16px;
-    cursor: pointer;
-    -webkit-tap-highlight-color: transparent;
+    font-family: var(--sans); font-weight: 600; font-size: 15px; border-radius: 10px;
+    border: none; padding: 14px 16px; cursor: pointer; -webkit-tap-highlight-color: transparent;
   }
   button:active{ transform: scale(0.98); }
-  .btn-primary{
-    background: var(--accent);
-    color: #16092E;
-    flex: 1;
-  }
-  .btn-ghost{
-    background: transparent;
-    color: var(--text-dim);
-    border: 1px solid var(--card-border);
-    flex: 1;
-  }
+  .btn-primary{ background: var(--accent); color: #16092E; flex: 1; }
+  .btn-ghost{ background: transparent; color: var(--text-dim); border: 1px solid var(--card-border); flex: 1; }
   .btn-ghost.full{ width: 100%; }
 
   #preview-section{ display:none; }
   #preview-section.show{ display:block; }
   pre#preview{
-    font-family: var(--sans);
-    font-size: 14.5px;
-    white-space: pre-wrap;
-    word-wrap: break-word;
-    color: var(--text);
-    line-height: 1.5;
-    margin: 0 0 14px;
-    background: #0E1729;
-    border: 1px solid var(--card-border);
-    border-radius: 8px;
-    padding: 14px;
+    font-family: var(--sans); font-size: 14.5px; white-space: pre-wrap; word-wrap: break-word;
+    color: var(--text); line-height: 1.5; margin: 0 0 14px; background: #0E1729;
+    border: 1px solid var(--card-border); border-radius: 8px; padding: 14px;
   }
   .toast{
-    position: fixed;
-    left: 50%; bottom: 26px;
-    transform: translateX(-50%) translateY(20px);
-    background: var(--ok);
-    color: #06210F;
-    font-weight: 700;
-    font-size: 14px;
-    padding: 12px 18px;
-    border-radius: 999px;
-    opacity: 0;
-    transition: opacity .2s, transform .2s;
-    pointer-events: none;
-    white-space: nowrap;
+    position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%) translateY(20px);
+    background: var(--ok); color: #06210F; font-weight: 700; font-size: 14px; padding: 12px 18px;
+    border-radius: 999px; opacity: 0; transition: opacity .2s, transform .2s; pointer-events: none; white-space: nowrap;
   }
   .toast.show{ opacity: 1; transform: translateX(-50%) translateY(0); }
   .toast.err{ background: var(--danger); color: #2A0A0A; }
 
+  .cad-row{
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+    padding: 10px 4px; border-bottom: 1px solid var(--card-border);
+  }
+  .cad-row:last-child{ border-bottom:none; }
+  .cad-row-text{ font-size:14.5px; flex:1; }
+  .cad-row-text .rota{ color:var(--text-dim); font-family:var(--mono); font-size:12px; margin-left:6px; }
+  .cad-row-btns{ display:flex; gap:6px; flex-shrink:0; }
+  .cad-edit-row{ display:flex; gap:6px; padding: 8px 4px; align-items:center; }
+  .cad-edit-row input{ padding:8px 10px; font-size:14px; }
+  .cad-add-row{ display:flex; gap:6px; margin-top:12px; }
+  .cad-add-row input{ flex:1; }
+  .cad-add-row.cidades-row input.cad-rota-input{ max-width:82px; text-transform:uppercase; }
+  .cad-add-row button{ flex-shrink:0; padding: 0 14px; font-size:13px; }
+  .cad-empty{ color:var(--text-dim); font-size:13px; padding:8px 4px; font-style:italic; }
+
   footer{
-    text-align:center;
-    color: var(--card-border);
-    font-family: var(--mono);
-    font-size: 10px;
-    letter-spacing: .1em;
-    text-transform: uppercase;
-    margin-top: 28px;
+    text-align:center; color: var(--card-border); font-family: var(--mono); font-size: 10px;
+    letter-spacing: .1em; text-transform: uppercase; margin-top: 28px;
   }
 </style>
 </head>
@@ -229,36 +216,87 @@
   <header>
     <div class="eyebrow">Esquadrimed &mdash; instalação</div>
     <h1>Programação de Equipes</h1>
-    <div class="sub">Defina pra onde cada equipe vai amanhã e gere o texto pro WhatsApp.</div>
+    <div class="sub">Preencha os campos e gere o texto para copiar e colar.</div>
   </header>
 
-  <div class="card" id="form-card">
-    <div class="field">
-      <label for="data">Data</label>
-      <input type="date" id="data">
+  <div class="seg" id="tab-seg">
+    <button type="button" class="seg-btn active" data-tab="prog">Programação</button>
+    <button type="button" class="seg-btn" data-tab="cad">Cadastros</button>
+  </div>
+
+  <!-- ===================== ABA PROGRAMAÇÃO ===================== -->
+  <div class="tab active" id="tab-prog">
+    <div class="card" id="form-card">
+      <div class="field">
+        <label for="data">Data</label>
+        <input type="date" id="data">
+      </div>
+
+      <button type="button" class="btn-ghost full" id="btn-carregar-ontem" style="margin-bottom:16px;">↺ Carregar último lançamento</button>
+
+      <div id="team-cards"></div>
+      <button type="button" class="btn-add" id="btn-add-team">+ Adicionar líder</button>
+
+      <div class="actions" style="margin-top:18px;">
+        <button class="btn-primary" id="btn-gerar">Gerar e copiar</button>
+      </div>
     </div>
 
-    <button type="button" class="btn-ghost full" id="btn-carregar-ontem" style="margin-bottom:16px;">↺ Carregar equipes de ontem</button>
-
-    <div id="team-cards"></div>
-    <button type="button" class="btn-add" id="btn-add-team">+ Adicionar líder</button>
-
-    <div class="actions" style="margin-top:18px;">
-      <button class="btn-primary" id="btn-gerar">Gerar e copiar</button>
+    <div class="card" id="preview-section">
+      <label>Prévia</label>
+      <pre id="preview"></pre>
+      <div class="actions">
+        <button class="btn-primary" id="btn-copiar">Copiar novamente</button>
+        <button class="btn-ghost" id="btn-novo">Novo relatório</button>
+      </div>
     </div>
   </div>
 
-  <div class="card" id="preview-section">
-    <label>Prévia</label>
-    <pre id="preview"></pre>
-    <div class="actions">
-      <button class="btn-primary" id="btn-copiar">Copiar novamente</button>
-      <button class="btn-ghost" id="btn-novo">Novo relatório</button>
+  <!-- ===================== ABA CADASTROS ===================== -->
+  <div class="tab" id="tab-cad">
+
+    <div class="card">
+      <label>Líderes</label>
+      <div class="cad-list" id="cad-list-lideres"></div>
+      <div class="cad-add-row">
+        <input type="text" id="cad-input-lideres" placeholder="Novo líder" autocomplete="off">
+        <button type="button" class="btn-primary" data-add="lideres">+ Adicionar</button>
+      </div>
     </div>
+
+    <div class="card">
+      <label>Cidades</label>
+      <div class="cad-list" id="cad-list-cidades"></div>
+      <div class="cad-add-row cidades-row">
+        <input type="text" id="cad-input-cidades-nome" placeholder="Nome da cidade" autocomplete="off">
+        <input type="text" id="cad-input-cidades-rota" class="cad-rota-input" placeholder="Rota" autocomplete="off">
+        <button type="button" class="btn-primary" data-add="cidades">+ Adicionar</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <label>Veículos</label>
+      <div class="cad-list" id="cad-list-veiculos"></div>
+      <div class="cad-add-row">
+        <input type="text" id="cad-input-veiculos" placeholder="Novo veículo" autocomplete="off">
+        <button type="button" class="btn-primary" data-add="veiculos">+ Adicionar</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <label>Pessoal da equipe</label>
+      <div class="cad-list" id="cad-list-equipe"></div>
+      <div class="cad-add-row">
+        <input type="text" id="cad-input-equipe" placeholder="Novo ajudante" autocomplete="off">
+        <button type="button" class="btn-primary" data-add="equipe">+ Adicionar</button>
+      </div>
+    </div>
+
   </div>
 
   <footer>Funciona 100% offline &middot; nada sai do aparelho</footer>
 </div>
+
 
 <div class="toast" id="toast"></div>
 
@@ -271,13 +309,195 @@
   const toastEl = $('toast');
   const STORAGE_KEY = 'equipes_ultima_lista';
 
+  const CAD_KEYS = { lideres:'cad_lideres', cidades:'cad_cidades', veiculos:'cad_veiculos', equipe:'cad_equipe' };
+
+  const SEED = {
+    lideres: ["Gilberto","João","Fernando","Renan","Filipe","Adrian","Maycon"],
+    veiculos: ["Iveco bau","Kia (ônibus)","VW bau","Iveco (23)","Iveco (73)","Mobi (48)","Kwid","Strada (83)","Mobi (18)","Mobi (98)","Biz","Montana (69)","Montana (33)","Strada dupla","Strada (40)","Strada (03)"],
+    equipe: [],
+    cidades: [
+      {nome:"Armazém",rota:"A3"},{nome:"Bom Jardim da Serra",rota:"G1"},{nome:"Bom Retiro",rota:"G2"},
+      {nome:"Braço do Norte",rota:"A2"},{nome:"Capão Alto",rota:"G3"},{nome:"Correia Pinto",rota:"G3"},
+      {nome:"Grão Pará",rota:"A2"},{nome:"Gravatal",rota:"A2"},{nome:"Lages",rota:"G3"},
+      {nome:"Lauro Muller",rota:"B1"},{nome:"Orleans",rota:"B1"},{nome:"Painel",rota:"G3"},
+      {nome:"Palmeira",rota:"G3"},{nome:"Pedras Grandes",rota:"B1"},{nome:"Rio Fortuna",rota:"A3"},
+      {nome:"São Joaquim",rota:"G1"},{nome:"São Ludgero",rota:"A2"},{nome:"São Martinho",rota:"A3"},
+      {nome:"Urubici",rota:"G2"},{nome:"Urupema",rota:"G2"},{nome:"Urussanga",rota:"B2"},
+      {nome:"Antônio Carlos",rota:"H1"},{nome:"Araranguá",rota:"D1"},{nome:"Arroio do Silva",rota:"D1"},
+      {nome:"Baln. Gaivota",rota:"E2"},{nome:"Biguaçu",rota:"H3"},{nome:"Ermo",rota:"E1"},
+      {nome:"Florianópolis",rota:"H2"},{nome:"Gov. Celso Ramos",rota:"H3"},{nome:"Guaporanga",rota:"H3"},
+      {nome:"Jacinto Machado",rota:"E1"},{nome:"Jaguaruna",rota:"C1"},{nome:"Maracajá",rota:"D1"},
+      {nome:"Meleiro",rota:"E1"},{nome:"Morro Grande",rota:"C1"},{nome:"Palhoça",rota:"H1"},
+      {nome:"Passo de Torres",rota:"E2"},{nome:"Praia Grande",rota:"E2"},{nome:"Sangão",rota:"C1"},
+      {nome:"Santo Amaro Imp.",rota:"H1"},{nome:"São João do Sul",rota:"E2"},{nome:"São José",rota:"H1"},
+      {nome:"São Pedro de Alc.",rota:"H1"},{nome:"Sombrio",rota:"E2"},{nome:"Sta. Rosa do Sul",rota:"E2"},
+      {nome:"Timbé do Sul",rota:"E1"},{nome:"Torres",rota:"E2"},{nome:"Treze de Maio",rota:"C1"},
+      {nome:"Turvo",rota:"E1"},{nome:"Capivari de Baixo",rota:"A1"},{nome:"Garopaba",rota:"F2"},
+      {nome:"Imaruí",rota:"F1"},{nome:"Imbituba",rota:"F2"},{nome:"Laguna",rota:"F1"},
+      {nome:"Paulo Lopes",rota:"F2"},{nome:"Pescaria Brava",rota:"F1"},{nome:"Tubarão",rota:"A1"},
+      {nome:"Cocal do Sul",rota:"B2"},{nome:"Criciúma",rota:"C2"},{nome:"Forquilhinha",rota:"C2"},
+      {nome:"Içara",rota:"C2"},{nome:"Morro da Fumaça",rota:"C1"},{nome:"Nova Veneza",rota:"C2"},
+      {nome:"Rincão",rota:"C2"},{nome:"Sideropólis",rota:"C2"},{nome:"Treviso",rota:"C2"},
+      {nome:"Outras Regiões",rota:"Z"}
+    ]
+  };
+
+  function cmp(a,b){ return a.localeCompare(b, 'pt-BR', {sensitivity:'base'}); }
+
+  function loadCad(tipo){
+    try{
+      const raw = localStorage.getItem(CAD_KEYS[tipo]);
+      if (raw) return JSON.parse(raw);
+    }catch(e){}
+    const seed = SEED[tipo].slice();
+    saveCad(tipo, seed);
+    return seed;
+  }
+  function saveCad(tipo, arr){
+    try{ localStorage.setItem(CAD_KEYS[tipo], JSON.stringify(arr)); }catch(e){}
+  }
+  function sortCad(tipo, arr){
+    if (tipo === 'cidades') arr.sort((a,b)=> cmp(a.nome,b.nome));
+    else arr.sort(cmp);
+    return arr;
+  }
+
+  const cad = {
+    lideres: sortCad('lideres', loadCad('lideres')),
+    cidades: sortCad('cidades', loadCad('cidades')),
+    veiculos: sortCad('veiculos', loadCad('veiculos')),
+    equipe: sortCad('equipe', loadCad('equipe'))
+  };
+
+  function addCadItem(tipo, valor){
+    if (tipo === 'cidades'){
+      const dup = cad.cidades.some(c => c.nome.toLowerCase() === valor.nome.toLowerCase());
+      if (dup) return false;
+      cad.cidades.push(valor);
+      sortCad('cidades', cad.cidades);
+    } else {
+      const dup = cad[tipo].some(v => v.toLowerCase() === valor.toLowerCase());
+      if (dup) return false;
+      cad[tipo].push(valor);
+      sortCad(tipo, cad[tipo]);
+    }
+    saveCad(tipo, cad[tipo]);
+    refreshCadUI(tipo);
+    refreshAllTeamCardOptions();
+    return true;
+  }
+  function editCadItem(tipo, idx, novoValor){
+    cad[tipo][idx] = novoValor;
+    sortCad(tipo, cad[tipo]);
+    saveCad(tipo, cad[tipo]);
+    refreshCadUI(tipo);
+    refreshAllTeamCardOptions();
+  }
+  function delCadItem(tipo, idx){
+    cad[tipo].splice(idx,1);
+    saveCad(tipo, cad[tipo]);
+    refreshCadUI(tipo);
+    refreshAllTeamCardOptions();
+  }
+
+  // --------- Renderização das listas de Cadastro ---------
+  function refreshCadUI(tipo){
+    const listEl = $('cad-list-' + tipo);
+    listEl.innerHTML = '';
+    const arr = cad[tipo];
+    if (!arr.length){
+      listEl.innerHTML = '<div class="cad-empty">Nenhum cadastro ainda.</div>';
+      return;
+    }
+    arr.forEach((item, idx) => {
+      const row = document.createElement('div');
+      row.className = 'cad-row';
+      const nome = tipo === 'cidades' ? item.nome : item;
+      const rotaHtml = tipo === 'cidades' ? `<span class="rota">${item.rota || ''}</span>` : '';
+      row.innerHTML = `
+        <span class="cad-row-text">${nome}${rotaHtml}</span>
+        <div class="cad-row-btns">
+          <button type="button" class="icon-btn btn-edit">Editar</button>
+          <button type="button" class="icon-btn danger btn-del">Excluir</button>
+        </div>
+      `;
+      row.querySelector('.btn-del').addEventListener('click', () => delCadItem(tipo, idx));
+      row.querySelector('.btn-edit').addEventListener('click', () => {
+        if (tipo === 'cidades'){
+          row.innerHTML = `
+            <div class="cad-edit-row" style="flex:1;">
+              <input type="text" class="edit-nome" value="${item.nome}">
+              <input type="text" class="edit-rota" value="${item.rota||''}" style="max-width:70px;">
+              <button type="button" class="btn-primary" style="padding:8px 12px;">OK</button>
+            </div>
+          `;
+        } else {
+          row.innerHTML = `
+            <div class="cad-edit-row" style="flex:1;">
+              <input type="text" class="edit-nome" value="${item}">
+              <button type="button" class="btn-primary" style="padding:8px 12px;">OK</button>
+            </div>
+          `;
+        }
+        const nomeInput = row.querySelector('.edit-nome');
+        nomeInput.focus();
+        const salvar = () => {
+          const novoNome = nomeInput.value.trim();
+          if (!novoNome) return;
+          if (tipo === 'cidades'){
+            const rotaInput = row.querySelector('.edit-rota');
+            editCadItem(tipo, idx, {nome: novoNome, rota: rotaInput.value.trim().toUpperCase()});
+          } else {
+            editCadItem(tipo, idx, novoNome);
+          }
+        };
+        row.querySelector('.btn-primary').addEventListener('click', salvar);
+        nomeInput.addEventListener('keydown', e => { if (e.key === 'Enter') salvar(); });
+      });
+      listEl.appendChild(row);
+    });
+  }
+
+  ['lideres','cidades','veiculos','equipe'].forEach(refreshCadUI);
+
+  document.querySelectorAll('[data-add]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tipo = btn.dataset.add;
+      if (tipo === 'cidades'){
+        const nomeInput = $('cad-input-cidades-nome');
+        const rotaInput = $('cad-input-cidades-rota');
+        const nome = nomeInput.value.trim();
+        if (!nome){ showToast('Digite o nome da cidade.', true); return; }
+        const ok = addCadItem('cidades', {nome, rota: rotaInput.value.trim().toUpperCase()});
+        if (!ok){ showToast('Essa cidade já está cadastrada.', true); return; }
+        nomeInput.value = ''; rotaInput.value = '';
+      } else {
+        const input = $('cad-input-' + tipo);
+        const valor = input.value.trim();
+        if (!valor){ showToast('Digite um valor.', true); return; }
+        const ok = addCadItem(tipo, valor);
+        if (!ok){ showToast('Já está cadastrado.', true); return; }
+        input.value = '';
+      }
+      showToast('Adicionado.');
+    });
+  });
+
+  // --------- Abas ---------
+  document.querySelectorAll('#tab-seg .seg-btn').forEach(b => {
+    b.addEventListener('click', () => {
+      document.querySelectorAll('#tab-seg .seg-btn').forEach(x => x.classList.toggle('active', x===b));
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      $('tab-' + b.dataset.tab).classList.add('active');
+    });
+  });
+
+  // --------- Data ---------
   function nextBusinessDay(){
     const hoje = new Date();
     let dia = new Date(hoje);
     dia.setDate(dia.getDate() + 1);
-    while (dia.getDay() === 0 || dia.getDay() === 6) {
-      dia.setDate(dia.getDate() + 1);
-    }
+    while (dia.getDay() === 0 || dia.getDay() === 6) { dia.setDate(dia.getDate() + 1); }
     return dia;
   }
   function todayISO(date){
@@ -288,37 +508,114 @@
   }
   dataEl.value = todayISO(nextBusinessDay());
 
-  function fmtDataBR(iso){
-    if(!iso) return '';
-    const [y,m,d] = iso.split('-');
-    return `${d}/${m}`;
+  // --------- Cartões de equipe ---------
+  function cidadeEhOutra(nomeCidade){
+    if (!nomeCidade) return false;
+    return !cad.cidades.some(c => c.nome === nomeCidade);
+  }
+  function cidadeOptionsHtml(selecionada){
+    let html = `<option value="">Selecione…</option>`;
+    cad.cidades.forEach(c => {
+      const sel = c.nome === selecionada ? 'selected' : '';
+      html += `<option value="${c.nome}" ${sel}>${c.nome}</option>`;
+    });
+    const selOutra = cidadeEhOutra(selecionada) && selecionada ? 'selected' : '';
+    html += `<option value="__outra__" ${selOutra}>Outra (digitar)</option>`;
+    return html;
   }
 
-  const CAMPOS = [
-    {key:'lider', label:'Líder', placeholder:'Gilberto'},
-    {key:'obra', label:'Obra', placeholder:'Satc'},
-    {key:'cidade', label:'Cidade', placeholder:'Criciúma'},
-    {key:'veiculo', label:'Veículo', placeholder:'Iveco 09'},
-    {key:'equipe', label:'Equipe', placeholder:'Fernando'}
-  ];
+  function optionsHtml(arr, selected){
+    let html = `<option value="">Selecione…</option>`;
+    arr.forEach(v => {
+      const sel = v === selected ? 'selected' : '';
+      html += `<option value="${v}" ${sel}>${v}</option>`;
+    });
+    return html;
+  }
+
+  function checkDuplicatas(){
+    const cards = Array.from(teamCardsEl.querySelectorAll('.team-card'));
+    ['tc-lider','tc-veiculo'].forEach(cls => {
+      const contagem = {};
+      cards.forEach(card => {
+        const val = card.querySelector('.' + cls).value;
+        if (val) contagem[val] = (contagem[val] || 0) + 1;
+      });
+      cards.forEach(card => {
+        const sel = card.querySelector('.' + cls);
+        const warn = sel.parentElement.querySelector('.dup-warning');
+        const val = sel.value;
+        const duplicado = val && contagem[val] > 1;
+        sel.classList.toggle('has-dup', !!duplicado);
+        if (duplicado){
+          warn.style.display = '';
+          warn.textContent = cls === 'tc-lider'
+            ? '⚠ Esse líder já está em outra equipe hoje'
+            : '⚠ Esse veículo já está em outra equipe hoje';
+        } else {
+          warn.style.display = 'none';
+        }
+      });
+    });
+  }
 
   function renumerar(){
     Array.from(teamCardsEl.children).forEach((card, i) => {
       card.querySelector('.team-card-title').textContent = `Equipe ${i+1}`;
     });
+    checkDuplicatas();
+  }
+
+  function renderChips(card){
+    const wrap = card.querySelector('.chips-wrap');
+    const selecionados = card._equipeSelecionada;
+    let html = '';
+    cad.equipe.forEach(nome => {
+      const sel = selecionados.has(nome) ? 'selected' : '';
+      html += `<button type="button" class="chip ${sel}" data-nome="${nome}">${nome}</button>`;
+    });
+    html += `<button type="button" class="chip qa-chip" data-qa="equipe">+ Novo</button>`;
+    wrap.innerHTML = html;
+    wrap.querySelectorAll('.chip[data-nome]').forEach(chip => {
+      chip.addEventListener('click', () => {
+        const nome = chip.dataset.nome;
+        if (selecionados.has(nome)) selecionados.delete(nome); else selecionados.add(nome);
+        chip.classList.toggle('selected');
+      });
+    });
+    wrap.querySelector('.qa-chip').addEventListener('click', () => abrirQuickAddEquipe(card));
+  }
+
+  function abrirQuickAddEquipe(card){
+    const wrap = card.querySelector('.chips-wrap');
+    wrap.innerHTML = `
+      <div class="qa-inline" style="width:100%;">
+        <input type="text" placeholder="Nome novo" autocomplete="off">
+        <button type="button" class="btn-primary">OK</button>
+        <button type="button" class="btn-ghost">X</button>
+      </div>
+    `;
+    const input = wrap.querySelector('input');
+    input.focus();
+    const cancelar = () => renderChips(card);
+    const confirmar = () => {
+      const valor = input.value.trim();
+      if (!valor){ cancelar(); return; }
+      const ok = addCadItem('equipe', valor);
+      if (!ok) showToast('Já está cadastrado.', true);
+      card._equipeSelecionada.add(valor);
+      renderChips(card);
+    };
+    wrap.querySelector('.btn-primary').addEventListener('click', confirmar);
+    wrap.querySelector('.btn-ghost').addEventListener('click', cancelar);
+    input.addEventListener('keydown', e => { if (e.key === 'Enter') confirmar(); });
   }
 
   function addTeamCard(data, focus){
     data = data || {};
     const card = document.createElement('div');
     card.className = 'team-card';
-
-    const fieldsHtml = CAMPOS.map(c => `
-      <div class="team-field">
-        <label>${c.label}</label>
-        <input type="text" class="tc-${c.key}" placeholder="${c.placeholder}" autocomplete="off" value="${(data[c.key]||'').replace(/"/g,'&quot;')}">
-      </div>
-    `).join('');
+    card._equipeSelecionada = new Set(data.equipe || []);
 
     card.innerHTML = `
       <div class="team-card-header">
@@ -328,7 +625,31 @@
           <button type="button" class="icon-btn danger btn-rm">Remover</button>
         </div>
       </div>
-      ${fieldsHtml}
+      <div class="team-field">
+        <label>Líder</label>
+        <select class="tc-lider">${optionsHtml(cad.lideres, data.lider)}</select>
+        <div class="dup-warning" style="display:none;"></div>
+      </div>
+      <div class="team-field">
+        <label>Obra</label>
+        <input type="text" class="tc-obra" placeholder="Nome da obra" autocomplete="off" value="${(data.obra||'').replace(/"/g,'&quot;')}">
+      </div>
+      <div class="team-field">
+        <label>Cidade</label>
+        <select class="tc-cidade-select">${cidadeOptionsHtml(data.cidade)}</select>
+        <input type="text" class="tc-cidade-outra" placeholder="Digite o nome da cidade" autocomplete="off"
+          style="margin-top:6px; ${cidadeEhOutra(data.cidade) ? '' : 'display:none;'}"
+          value="${cidadeEhOutra(data.cidade) ? (data.cidade||'').replace(/"/g,'&quot;') : ''}">
+      </div>
+      <div class="team-field">
+        <label>Veículo</label>
+        <select class="tc-veiculo">${optionsHtml(cad.veiculos, data.veiculo)}</select>
+        <div class="dup-warning" style="display:none;"></div>
+      </div>
+      <div class="team-field">
+        <label>Equipe (ajudantes)</label>
+        <div class="chips chips-wrap"></div>
+      </div>
     `;
 
     card.querySelector('.btn-rm').addEventListener('click', () => {
@@ -341,23 +662,55 @@
       addTeamCard(atual, true);
       renumerar();
     });
+    card.querySelector('.tc-lider').addEventListener('change', checkDuplicatas);
+    card.querySelector('.tc-veiculo').addEventListener('change', checkDuplicatas);
+    card.querySelector('.tc-cidade-select').addEventListener('change', (e) => {
+      const outraInput = card.querySelector('.tc-cidade-outra');
+      if (e.target.value === '__outra__'){
+        outraInput.style.display = '';
+        outraInput.focus();
+      } else {
+        outraInput.style.display = 'none';
+        outraInput.value = '';
+      }
+    });
 
+    renderChips(card);
     teamCardsEl.appendChild(card);
     renumerar();
     if (focus) card.querySelector('.tc-lider').focus();
   }
 
-  function lerCard(card){
-    const obj = {};
-    CAMPOS.forEach(c => {
-      obj[c.key] = card.querySelector(`.tc-${c.key}`).value.trim();
+  function refreshAllTeamCardOptions(){
+    Array.from(teamCardsEl.children).forEach(card => {
+      const liderSel = card.querySelector('.tc-lider');
+      if (liderSel){ const cur = liderSel.value; liderSel.innerHTML = optionsHtml(cad.lideres, cur); }
+      const veicSel = card.querySelector('.tc-veiculo');
+      if (veicSel){ const cur = veicSel.value; veicSel.innerHTML = optionsHtml(cad.veiculos, cur); }
+      const cidadeSel = card.querySelector('.tc-cidade-select');
+      if (cidadeSel){
+        const atual = lerCard(card).cidade;
+        cidadeSel.innerHTML = cidadeOptionsHtml(atual);
+      }
+      if (card.querySelector('.chips-wrap')) renderChips(card);
     });
-    return obj;
+  }
+
+  function lerCard(card){
+    const cidadeSel = card.querySelector('.tc-cidade-select').value;
+    const cidade = cidadeSel === '__outra__' ? card.querySelector('.tc-cidade-outra').value.trim() : cidadeSel;
+    return {
+      lider: card.querySelector('.tc-lider') ? card.querySelector('.tc-lider').value : '',
+      obra: card.querySelector('.tc-obra').value.trim(),
+      cidade: cidade,
+      veiculo: card.querySelector('.tc-veiculo') ? card.querySelector('.tc-veiculo').value : '',
+      equipe: Array.from(card._equipeSelecionada)
+    };
   }
 
   function todosCards(){
     return Array.from(teamCardsEl.querySelectorAll('.team-card')).map(lerCard)
-      .filter(o => Object.values(o).some(v => v));
+      .filter(o => o.lider || o.obra || o.cidade || o.veiculo || o.equipe.length);
   }
 
   function resetCards(){
@@ -371,32 +724,67 @@
   $('btn-carregar-ontem').addEventListener('click', () => {
     let salvo = null;
     try{ salvo = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null'); }catch(e){}
-    if (!salvo || !salvo.length){
-      showToast('Nenhuma lista salva ainda.', true);
-      return;
-    }
+    if (!salvo || !salvo.length){ showToast('Nenhuma lista salva ainda.', true); return; }
     teamCardsEl.innerHTML = '';
     salvo.forEach(d => addTeamCard(d, false));
     renumerar();
-    showToast('Equipes de ontem carregadas.');
+    showToast('Último lançamento carregado.');
   });
 
+  function rotaDaCidade(nome){
+    if (!nome) return null;
+    const encontrada = cad.cidades.find(c => c.nome === nome);
+    return encontrada ? encontrada.rota : 'Z';
+  }
+
+  // ============================================================
+  //  FORMATO FINAL DO TEXTO – conforme solicitado
+  //  📅 20/08/2026
+  //  👷 *Adrian*
+  //  Obra: 
+  //  Cidade: 
+  //  Veículo: 
+  //  Equipe: 
+  // ============================================================
   function montarTexto(){
     const linhas = [];
-    linhas.push(`DATA: ${fmtDataBR(dataEl.value)}`);
+    // Data no formato dd/mm/aaaa
+    const dataISO = dataEl.value;
+    if (dataISO) {
+      const [y, m, d] = dataISO.split('-');
+      linhas.push(`📅 ${d}/${m}/${y}`);
+    } else {
+      linhas.push(`📅 DATA`);
+    }
     linhas.push('');
     const equipes = todosCards();
-    if (equipes.length){
-      equipes.forEach((eq, i) => {
-        linhas.push(`Líder: ${eq.lider || '-'}`);
-        linhas.push(`Obra: ${eq.obra || '-'}`);
-        linhas.push(`Cidade: ${eq.cidade || '-'}`);
-        linhas.push(`Veículo: ${eq.veiculo || '-'}`);
-        linhas.push(`Equipe: ${eq.equipe || '-'}`);
-        if (i < equipes.length - 1) linhas.push('');
+    if (equipes.length) {
+      const equipesValidas = equipes.filter(eq => eq.lider || eq.cidade);
+      if (equipesValidas.length === 0) {
+        linhas.push('- Nenhuma equipe programada -');
+        return linhas.join('\n');
+      }
+      equipesValidas.forEach((eq) => {
+        let cidadeExibida = eq.cidade || '';
+        if (eq.cidade && cidadeEhOutra(eq.cidade) && !eq.cidade.trim()) {
+          cidadeExibida = '';
+        }
+        const rota = rotaDaCidade(eq.cidade);
+        // Líder com negrito (markdown) e sem a palavra "Líder:"
+        linhas.push(`👷 *${eq.lider || 'Líder não definido'}*`);
+        linhas.push(`Obra: ${eq.obra || ''}`);
+        const cidadeComRota = cidadeExibida + (rota ? ` (${rota})` : '');
+        linhas.push(`Cidade: ${cidadeComRota}`);
+        linhas.push(`Veículo: ${eq.veiculo || ''}`);
+        linhas.push(`Equipe: ${eq.equipe.length ? eq.equipe.join(', ') : ''}`);
+        linhas.push(''); // linha em branco entre equipes
       });
+      // Remove última linha em branco extra
+      if (linhas.length > 0 && linhas[linhas.length - 1] === '') {
+        linhas.pop();
+      }
     } else {
-      linhas.push('-');
+      linhas.push('- Nenhuma equipe programada -');
     }
     return linhas.join('\n');
   }
@@ -415,25 +803,38 @@
       showToast('Copiado! Abra o WhatsApp e cole.');
     }catch(e){
       const ta = document.createElement('textarea');
-      ta.value = texto;
-      ta.style.position = 'fixed';
-      ta.style.opacity = '0';
-      document.body.appendChild(ta);
-      ta.focus(); ta.select();
-      try{
-        document.execCommand('copy');
-        showToast('Copiado! Abra o WhatsApp e cole.');
-      }catch(e2){
-        showToast('Não consegui copiar automático. Selecione o texto acima.', true);
-      }
+      ta.value = texto; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.focus(); ta.select();
+      try{ document.execCommand('copy'); showToast('Copiado! Abra o WhatsApp e cole.'); }
+      catch(e2){ showToast('Não consegui copiar automático. Selecione o texto acima.', true); }
       document.body.removeChild(ta);
     }
   }
 
   function gerar(){
+    // Validação: se alguma cidade for "Outra" e o campo estiver vazio, avisar
+    const cards = Array.from(teamCardsEl.querySelectorAll('.team-card'));
+    let cidadeVazia = false;
+    cards.forEach(card => {
+      const cidadeSel = card.querySelector('.tc-cidade-select').value;
+      if (cidadeSel === '__outra__') {
+        const outraInput = card.querySelector('.tc-cidade-outra');
+        if (!outraInput.value.trim()) {
+          cidadeVazia = true;
+          outraInput.focus();
+          outraInput.style.borderColor = 'var(--danger)';
+          setTimeout(() => { outraInput.style.borderColor = ''; }, 2000);
+        }
+      }
+    });
+    if (cidadeVazia) {
+      showToast('Preencha o nome da cidade em "Outra".', true);
+      return;
+    }
+
     const equipes = todosCards();
-    if (!equipes.length){
-      showToast('Preencha ao menos um líder.', true);
+    if (!equipes.length || !equipes.some(eq => eq.lider || eq.cidade)){
+      showToast('Preencha ao menos um líder e uma cidade.', true);
       return;
     }
     try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(equipes)); }catch(e){}
