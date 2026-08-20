@@ -128,6 +128,34 @@
   .chip:active{ transform: scale(0.96); }
   .chip.has-dup{ border-color: #FBBF24; }
 
+  /* --- Combobox de busca (usado no seletor de cidades) --- */
+  .selected-chips{ display:flex; flex-wrap:wrap; gap:6px; margin-bottom: 8px; }
+  .selected-chips:empty{ display:none; }
+  .chip-sel{
+    background:var(--accent); color:#16092E; font-size:13px; font-weight:600;
+    padding:6px 6px 6px 12px; border-radius:999px; display:flex; align-items:center; gap:6px;
+  }
+  .chip-sel .rm{ cursor:pointer; font-weight:800; opacity:.75; padding:2px 4px; line-height:1; }
+  .chip-sel .rm:active{ opacity:1; }
+
+  .combo-wrap{ position:relative; }
+  .combo-dropdown{
+    position:absolute; left:0; right:0; top:calc(100% + 4px); z-index:20;
+    background:#0E1729; border:1px solid var(--card-border); border-radius:10px;
+    max-height: 210px; overflow-y:auto; padding:6px;
+    box-shadow: 0 10px 24px rgba(0,0,0,.35);
+  }
+  .combo-dropdown.hidden{ display:none; }
+  .combo-item{
+    padding:10px 10px; font-size:14.5px; border-radius:7px; cursor:pointer;
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+  }
+  .combo-item:active{ background:var(--card); }
+  .combo-item.is-selected{ color:var(--accent); font-weight:700; }
+  .combo-item .rota-tag{ font-family:var(--mono); font-size:11px; color:var(--text-dim); }
+  .combo-empty{ padding:12px 10px; font-size:13.5px; color:var(--text-dim); }
+  .combo-add-new{ color:var(--accent); font-weight:700; }
+
   .team-card{
     background: var(--card2);
     border: 1px solid var(--card-border);
@@ -293,6 +321,17 @@
       </div>
     </div>
 
+    <!-- Card de Backup -->
+    <div class="card">
+      <label>Backup</label>
+      <p style="font-size:13px; color:var(--text-dim); margin-bottom:12px;">Exporte seus dados antes de atualizar o app ou trocar de aparelho.</p>
+      <div class="actions">
+        <button type="button" class="btn-ghost" id="btn-export">⬇ Exportar dados</button>
+        <button type="button" class="btn-ghost" id="btn-import">⬆ Importar dados</button>
+      </div>
+      <input type="file" id="file-import" accept=".json" style="display:none;">
+    </div>
+
   </div>
 
   <footer>Funciona 100% offline &middot; nada sai do aparelho</footer>
@@ -370,6 +409,27 @@
     equipe: sortCad('equipe', loadCad('equipe'))
   };
 
+  // Remove duplicatas (nome case-insensitive) preservando o primeiro registro encontrado.
+  function dedupeESort(tipo, arr){
+    const vistos = new Map();
+    (arr || []).forEach(item => {
+      if (tipo === 'cidades'){
+        const nome = (item && item.nome ? String(item.nome) : '').trim();
+        if (!nome) return;
+        const chave = nome.toLowerCase();
+        if (!vistos.has(chave)){
+          vistos.set(chave, { nome, rota: (item.rota ? String(item.rota) : '').trim().toUpperCase() });
+        }
+      } else {
+        const nome = (item ? String(item) : '').trim();
+        if (!nome) return;
+        const chave = nome.toLowerCase();
+        if (!vistos.has(chave)) vistos.set(chave, nome);
+      }
+    });
+    return sortCad(tipo, Array.from(vistos.values()));
+  }
+
   function addCadItem(tipo, valor){
     if (tipo === 'cidades'){
       const dup = cad.cidades.some(c => c.nome.toLowerCase() === valor.nome.toLowerCase());
@@ -387,12 +447,51 @@
     refreshAllTeamCardOptions();
     return true;
   }
+
+  // Ao editar (renomear) um cadastro, propaga o nome novo para qualquer
+  // equipe do dia que já tivesse o nome antigo selecionado, em vez de
+  // deixar a seleção sumir silenciosamente.
   function editCadItem(tipo, idx, novoValor){
+    const antigo = cad[tipo][idx];
+    const nomeAntigo = tipo === 'cidades' ? antigo.nome : antigo;
+    const nomeNovo = tipo === 'cidades' ? novoValor.nome : novoValor;
+
     cad[tipo][idx] = novoValor;
     sortCad(tipo, cad[tipo]);
     saveCad(tipo, cad[tipo]);
     refreshCadUI(tipo);
-    refreshAllTeamCardOptions();
+
+    const renameInfo = (nomeAntigo !== nomeNovo) ? { tipo, de: nomeAntigo, para: nomeNovo } : null;
+    refreshAllTeamCardOptions(renameInfo);
+    renomearNoUltimoLancamento(renameInfo);
+  }
+
+  // O "último lançamento" fica salvo como uma foto congelada no localStorage
+  // (gravada quando você clica em "Gerar e copiar"). Se depois disso você
+  // renomear um líder/cidade/veículo/ajudante em Cadastros, essa foto NÃO
+  // é atualizada automaticamente pelas outras funções acima — por isso essa
+  // propagação separada é necessária para o nome novo "grudar" também aqui.
+  function renomearNoUltimoLancamento(renameInfo){
+    if (!renameInfo) return;
+    let salvo = null;
+    try{ salvo = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null'); }catch(e){}
+    if (!salvo || !Array.isArray(salvo) || !salvo.length) return;
+    let mudou = false;
+    salvo.forEach(eq => {
+      if (renameInfo.tipo === 'lideres' && eq.lider === renameInfo.de){ eq.lider = renameInfo.para; mudou = true; }
+      if (renameInfo.tipo === 'veiculos' && eq.veiculo === renameInfo.de){ eq.veiculo = renameInfo.para; mudou = true; }
+      if (renameInfo.tipo === 'equipe' && Array.isArray(eq.equipe)){
+        const i = eq.equipe.indexOf(renameInfo.de);
+        if (i > -1){ eq.equipe[i] = renameInfo.para; mudou = true; }
+      }
+      if (renameInfo.tipo === 'cidades' && Array.isArray(eq.cidades)){
+        const i = eq.cidades.indexOf(renameInfo.de);
+        if (i > -1){ eq.cidades[i] = renameInfo.para; mudou = true; }
+      }
+    });
+    if (mudou){
+      try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(salvo)); }catch(e){}
+    }
   }
   function delCadItem(tipo, idx){
     cad[tipo].splice(idx,1);
@@ -509,22 +608,7 @@
   }
   dataEl.value = todayISO(nextBusinessDay());
 
-  // --------- Cartões de equipe ---------
-  function cidadeEhOutra(nomeCidade){
-    if (!nomeCidade) return false;
-    return !cad.cidades.some(c => c.nome === nomeCidade);
-  }
-  function cidadeOptionsHtml(selecionada){
-    let html = `<option value="">Selecione…</option>`;
-    cad.cidades.forEach(c => {
-      const sel = c.nome === selecionada ? 'selected' : '';
-      html += `<option value="${c.nome}" ${sel}>${c.nome}</option>`;
-    });
-    const selOutra = cidadeEhOutra(selecionada) && selecionada ? 'selected' : '';
-    html += `<option value="__outra__" ${selOutra}>Outra (digitar)</option>`;
-    return html;
-  }
-
+  // FUNÇÃO: optionsHtml
   function optionsHtml(arr, selected){
     let html = `<option value="">Selecione…</option>`;
     arr.forEach(v => {
@@ -540,7 +624,6 @@
   function checkDuplicatas(){
     const cards = Array.from(teamCardsEl.querySelectorAll('.team-card'));
 
-    // 1) Líderes
     const liderContagem = {};
     cards.forEach(card => {
       const val = card.querySelector('.tc-lider').value;
@@ -560,7 +643,6 @@
       }
     });
 
-    // 2) Veículos
     const veicContagem = {};
     cards.forEach(card => {
       const val = card.querySelector('.tc-veiculo').value;
@@ -580,8 +662,6 @@
       }
     });
 
-    // 3) Ajudantes (equipe) – verifica duplicatas entre os chips selecionados
-    // Coleta todos os nomes selecionados em cada equipe
     const todosAjudantes = [];
     cards.forEach(card => {
       const selecionados = card._equipeSelecionada;
@@ -591,12 +671,10 @@
         });
       }
     });
-    // Conta ocorrências
     const contagemAjudantes = {};
     todosAjudantes.forEach(item => {
       contagemAjudantes[item.nome] = (contagemAjudantes[item.nome] || 0) + 1;
     });
-    // Para cada card, verifica se algum nome selecionado está duplicado globalmente
     cards.forEach(card => {
       const warn = card.querySelector('.dup-warning-equipe');
       const selecionados = card._equipeSelecionada;
@@ -626,6 +704,7 @@
     checkDuplicatas();
   }
 
+  // Renderiza chips de ajudantes (lista costuma ser pequena, mantida como chips fixos)
   function renderChips(card){
     const wrap = card.querySelector('.chips-wrap');
     const selecionados = card._equipeSelecionada;
@@ -641,7 +720,7 @@
         const nome = chip.dataset.nome;
         if (selecionados.has(nome)) selecionados.delete(nome); else selecionados.add(nome);
         chip.classList.toggle('selected');
-        checkDuplicatas(); // atualiza avisos após mudança
+        checkDuplicatas();
       });
     });
     wrap.querySelector('.qa-chip').addEventListener('click', () => abrirQuickAddEquipe(card));
@@ -673,99 +752,200 @@
     input.addEventListener('keydown', e => { if (e.key === 'Enter') confirmar(); });
   }
 
-  function addTeamCard(data, focus){
-    data = data || {};
-    const card = document.createElement('div');
-    card.className = 'team-card';
-    card._equipeSelecionada = new Set(data.equipe || []);
-
-    card.innerHTML = `
-      <div class="team-card-header">
-        <span class="team-card-title">Equipe</span>
-        <div class="team-card-btns">
-          <button type="button" class="icon-btn btn-dup">Duplicar</button>
-          <button type="button" class="icon-btn danger btn-rm">Remover</button>
-        </div>
-      </div>
-      <div class="team-field">
-        <label>Líder</label>
-        <select class="tc-lider">${optionsHtml(cad.lideres, data.lider)}</select>
-        <div class="dup-warning" style="display:none;"></div>
-      </div>
-      <div class="team-field">
-        <label>Obra</label>
-        <input type="text" class="tc-obra" placeholder="Nome da obra" autocomplete="off" value="${(data.obra||'').replace(/"/g,'&quot;')}">
-      </div>
-      <div class="team-field">
-        <label>Cidade</label>
-        <select class="tc-cidade-select">${cidadeOptionsHtml(data.cidade)}</select>
-        <input type="text" class="tc-cidade-outra" placeholder="Digite o nome da cidade" autocomplete="off"
-          style="margin-top:6px; ${cidadeEhOutra(data.cidade) ? '' : 'display:none;'}"
-          value="${cidadeEhOutra(data.cidade) ? (data.cidade||'').replace(/"/g,'&quot;') : ''}">
-      </div>
-      <div class="team-field">
-        <label>Veículo</label>
-        <select class="tc-veiculo">${optionsHtml(cad.veiculos, data.veiculo)}</select>
-        <div class="dup-warning" style="display:none;"></div>
-      </div>
-      <div class="team-field">
-        <label>Equipe (ajudantes)</label>
-        <div class="chips chips-wrap"></div>
-        <div class="dup-warning dup-warning-equipe" style="display:none;"></div>
-      </div>
-    `;
-
-    card.querySelector('.btn-rm').addEventListener('click', () => {
-      card.remove();
-      if (!teamCardsEl.children.length) addTeamCard({}, false);
-      renumerar();
+  // ============================================================
+  //  Seletor de cidades: combobox com busca (em vez de ~70 chips fixos)
+  //  - Mostra só as cidades já selecionadas como chips removíveis.
+  //  - Um campo de busca abre uma lista filtrada e rolável ao focar.
+  // ============================================================
+  function renderSelectedCidades(card){
+    const wrap = card.querySelector('.selected-cidades');
+    const selecionadas = Array.from(card._cidadesSelecionadas);
+    wrap.innerHTML = selecionadas.map(nome => `
+      <span class="chip-sel" data-cidade="${nome}">${nome}<span class="rm" data-rm-cidade="${nome}">✕</span></span>
+    `).join('');
+    wrap.querySelectorAll('[data-rm-cidade]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        card._cidadesSelecionadas.delete(btn.dataset.rmCidade);
+        renderSelectedCidades(card);
+        checkDuplicatas();
+      });
     });
-    card.querySelector('.btn-dup').addEventListener('click', () => {
-      const atual = lerCard(card);
-      addTeamCard(atual, true);
-      renumerar();
-    });
-    card.querySelector('.tc-lider').addEventListener('change', checkDuplicatas);
-    card.querySelector('.tc-veiculo').addEventListener('change', checkDuplicatas);
-    card.querySelector('.tc-cidade-select').addEventListener('change', (e) => {
-      const outraInput = card.querySelector('.tc-cidade-outra');
-      if (e.target.value === '__outra__'){
-        outraInput.style.display = '';
-        outraInput.focus();
-      } else {
-        outraInput.style.display = 'none';
-        outraInput.value = '';
-      }
-    });
-
-    renderChips(card);
-    teamCardsEl.appendChild(card);
-    renumerar();
-    if (focus) card.querySelector('.tc-lider').focus();
   }
 
-  function refreshAllTeamCardOptions(){
+  function renderCidadeDropdown(card, filtro){
+    const dd = card.querySelector('.cidade-dropdown');
+    const termoOriginal = (filtro || '').trim();
+    const termo = termoOriginal.toLowerCase();
+    const lista = termo ? cad.cidades.filter(c => c.nome.toLowerCase().includes(termo)) : cad.cidades;
+
+    let html = '';
+    lista.slice(0, 60).forEach(c => {
+      const sel = card._cidadesSelecionadas.has(c.nome);
+      html += `<div class="combo-item ${sel ? 'is-selected' : ''}" data-cidade="${c.nome}">
+        <span>${c.nome}${sel ? ' ✓' : ''}</span>
+        <span class="rota-tag">${c.rota||''}</span>
+      </div>`;
+    });
+    if (!lista.length){
+      html += `<div class="combo-empty">Nenhuma cidade encontrada.</div>`;
+    }
+    const jaExiste = termo && cad.cidades.some(c => c.nome.toLowerCase() === termo);
+    if (termoOriginal && !jaExiste){
+      html += `<div class="combo-item combo-add-new" data-add-cidade="${termoOriginal}">+ Adicionar "${termoOriginal}" como nova cidade</div>`;
+    }
+    dd.innerHTML = html;
+
+    dd.querySelectorAll('[data-cidade]').forEach(item => {
+      item.addEventListener('mousedown', e => e.preventDefault());
+      item.addEventListener('click', () => {
+        const nome = item.dataset.cidade;
+        if (card._cidadesSelecionadas.has(nome)) card._cidadesSelecionadas.delete(nome);
+        else card._cidadesSelecionadas.add(nome);
+        renderSelectedCidades(card);
+        renderCidadeDropdown(card, card.querySelector('.tc-cidade-search').value);
+        checkDuplicatas();
+      });
+    });
+    const addBtn = dd.querySelector('[data-add-cidade]');
+    if (addBtn){
+      addBtn.addEventListener('mousedown', e => e.preventDefault());
+      addBtn.addEventListener('click', () => {
+        const nome = addBtn.dataset.addCidade;
+        if (!nome) return;
+        if (!cad.cidades.some(c => c.nome.toLowerCase() === nome.toLowerCase())){
+          addCadItem('cidades', {nome, rota:''});
+        }
+        card._cidadesSelecionadas.add(nome);
+        const input = card.querySelector('.tc-cidade-search');
+        input.value = '';
+        renderSelectedCidades(card);
+        renderCidadeDropdown(card, '');
+        checkDuplicatas();
+      });
+    }
+  }
+
+  function addTeamCard(data, focus){
+    try {
+      data = data || {};
+      if (!Array.isArray(data.equipe)) data.equipe = [];
+      if (!Array.isArray(data.cidades)) data.cidades = [];
+
+      const card = document.createElement('div');
+      card.className = 'team-card';
+      card._equipeSelecionada = new Set(data.equipe);
+      card._cidadesSelecionadas = new Set(data.cidades);
+
+      card.innerHTML = `
+        <div class="team-card-header">
+          <span class="team-card-title">Equipe</span>
+          <div class="team-card-btns">
+            <button type="button" class="icon-btn btn-dup">Duplicar</button>
+            <button type="button" class="icon-btn danger btn-rm">Remover</button>
+          </div>
+        </div>
+        <div class="team-field">
+          <label>Líder</label>
+          <select class="tc-lider">${optionsHtml(cad.lideres, data.lider)}</select>
+          <div class="dup-warning" style="display:none;"></div>
+        </div>
+        <div class="team-field">
+          <label>Obra</label>
+          <input type="text" class="tc-obra" placeholder="Nome da obra" autocomplete="off" value="${(data.obra||'').replace(/"/g,'&quot;')}">
+        </div>
+        <div class="team-field">
+          <label>Cidades</label>
+          <div class="selected-chips selected-cidades"></div>
+          <div class="combo-wrap">
+            <input type="text" class="tc-cidade-search" placeholder="Buscar cidade…" autocomplete="off">
+            <div class="combo-dropdown hidden cidade-dropdown"></div>
+          </div>
+          <div class="dup-warning dup-warning-cidades" style="display:none;"></div>
+        </div>
+        <div class="team-field">
+          <label>Veículo</label>
+          <select class="tc-veiculo">${optionsHtml(cad.veiculos, data.veiculo)}</select>
+          <div class="dup-warning" style="display:none;"></div>
+        </div>
+        <div class="team-field">
+          <label>Equipe (ajudantes)</label>
+          <div class="chips chips-wrap"></div>
+          <div class="dup-warning dup-warning-equipe" style="display:none;"></div>
+        </div>
+      `;
+
+      card.querySelector('.btn-rm').addEventListener('click', () => {
+        card.remove();
+        if (!teamCardsEl.children.length) addTeamCard({}, false);
+        renumerar();
+      });
+      card.querySelector('.btn-dup').addEventListener('click', () => {
+        const atual = lerCard(card);
+        addTeamCard(atual, true);
+        renumerar();
+      });
+      card.querySelector('.tc-lider').addEventListener('change', checkDuplicatas);
+      card.querySelector('.tc-veiculo').addEventListener('change', checkDuplicatas);
+
+      const cidadeInput = card.querySelector('.tc-cidade-search');
+      const cidadeDD = card.querySelector('.cidade-dropdown');
+      cidadeInput.addEventListener('focus', () => {
+        cidadeDD.classList.remove('hidden');
+        renderCidadeDropdown(card, cidadeInput.value);
+      });
+      cidadeInput.addEventListener('input', () => {
+        renderCidadeDropdown(card, cidadeInput.value);
+      });
+      cidadeInput.addEventListener('blur', () => {
+        setTimeout(() => { cidadeDD.classList.add('hidden'); }, 150);
+      });
+
+      renderChips(card);
+      renderSelectedCidades(card);
+      teamCardsEl.appendChild(card);
+      renumerar();
+      if (focus) card.querySelector('.tc-lider').focus();
+    } catch(err) {
+      console.error('Erro ao adicionar equipe:', err);
+      alert('Erro ao adicionar equipe: ' + err.message);
+    }
+  }
+
+  // renameInfo (opcional): { tipo, de, para } — usado quando um cadastro é
+  // renomeado, para que a seleção já feita numa equipe acompanhe o novo nome.
+  function refreshAllTeamCardOptions(renameInfo){
     Array.from(teamCardsEl.children).forEach(card => {
       const liderSel = card.querySelector('.tc-lider');
-      if (liderSel){ const cur = liderSel.value; liderSel.innerHTML = optionsHtml(cad.lideres, cur); }
+      if (liderSel){
+        let cur = liderSel.value;
+        if (renameInfo && renameInfo.tipo === 'lideres' && cur === renameInfo.de) cur = renameInfo.para;
+        liderSel.innerHTML = optionsHtml(cad.lideres, cur);
+      }
       const veicSel = card.querySelector('.tc-veiculo');
-      if (veicSel){ const cur = veicSel.value; veicSel.innerHTML = optionsHtml(cad.veiculos, cur); }
-      const cidadeSel = card.querySelector('.tc-cidade-select');
-      if (cidadeSel){
-        const atual = lerCard(card).cidade;
-        cidadeSel.innerHTML = cidadeOptionsHtml(atual);
+      if (veicSel){
+        let cur = veicSel.value;
+        if (renameInfo && renameInfo.tipo === 'veiculos' && cur === renameInfo.de) cur = renameInfo.para;
+        veicSel.innerHTML = optionsHtml(cad.veiculos, cur);
+      }
+      if (renameInfo && renameInfo.tipo === 'equipe' && card._equipeSelecionada.has(renameInfo.de)){
+        card._equipeSelecionada.delete(renameInfo.de);
+        card._equipeSelecionada.add(renameInfo.para);
+      }
+      if (renameInfo && renameInfo.tipo === 'cidades' && card._cidadesSelecionadas.has(renameInfo.de)){
+        card._cidadesSelecionadas.delete(renameInfo.de);
+        card._cidadesSelecionadas.add(renameInfo.para);
       }
       if (card.querySelector('.chips-wrap')) renderChips(card);
+      if (card.querySelector('.selected-cidades')) renderSelectedCidades(card);
     });
+    checkDuplicatas();
   }
 
   function lerCard(card){
-    const cidadeSel = card.querySelector('.tc-cidade-select').value;
-    const cidade = cidadeSel === '__outra__' ? card.querySelector('.tc-cidade-outra').value.trim() : cidadeSel;
     return {
       lider: card.querySelector('.tc-lider') ? card.querySelector('.tc-lider').value : '',
       obra: card.querySelector('.tc-obra').value.trim(),
-      cidade: cidade,
+      cidades: Array.from(card._cidadesSelecionadas),
       veiculo: card.querySelector('.tc-veiculo') ? card.querySelector('.tc-veiculo').value : '',
       equipe: Array.from(card._equipeSelecionada)
     };
@@ -773,7 +953,7 @@
 
   function todosCards(){
     return Array.from(teamCardsEl.querySelectorAll('.team-card')).map(lerCard)
-      .filter(o => o.lider || o.obra || o.cidade || o.veiculo || o.equipe.length);
+      .filter(o => o.lider || o.obra || o.cidades.length || o.veiculo || o.equipe.length);
   }
 
   function resetCards(){
@@ -782,7 +962,9 @@
   }
   resetCards();
 
-  $('btn-add-team').addEventListener('click', () => addTeamCard({}, true));
+  $('btn-add-team').addEventListener('click', () => {
+    addTeamCard({}, true);
+  });
 
   $('btn-carregar-ontem').addEventListener('click', () => {
     let salvo = null;
@@ -797,9 +979,16 @@
   function rotaDaCidade(nome){
     if (!nome) return null;
     const encontrada = cad.cidades.find(c => c.nome === nome);
-    return encontrada ? encontrada.rota : 'Z';
+    if (encontrada) return encontrada.rota || null;
+    // Cidade não está (mais) cadastrada — evita usar "Z" aqui, pois essa é a
+    // rota real de "Outras Regiões" e mostrar isso confundiria com um dado
+    // válido. "?" deixa claro que é preciso revisar essa cidade.
+    return '?';
   }
 
+  // ============================================================
+  //  MONTAGEM DO TEXTO FINAL (com múltiplas cidades)
+  // ============================================================
   function montarTexto(){
     const linhas = [];
     const dataISO = dataEl.value;
@@ -812,21 +1001,20 @@
     linhas.push('');
     const equipes = todosCards();
     if (equipes.length) {
-      const equipesValidas = equipes.filter(eq => eq.lider || eq.cidade);
+      const equipesValidas = equipes.filter(eq => eq.lider || eq.cidades.length > 0);
       if (equipesValidas.length === 0) {
         linhas.push('- Nenhuma equipe programada -');
         return linhas.join('\n');
       }
       equipesValidas.forEach((eq) => {
-        let cidadeExibida = eq.cidade || '';
-        if (eq.cidade && cidadeEhOutra(eq.cidade) && !eq.cidade.trim()) {
-          cidadeExibida = '';
-        }
-        const rota = rotaDaCidade(eq.cidade);
+        const cidadesComRotas = eq.cidades.map(cid => {
+          const rota = rotaDaCidade(cid);
+          return rota ? `${cid} (${rota})` : cid;
+        }).join(', ');
+
         linhas.push(`👷 *${eq.lider || 'Líder não definido'}*`);
         linhas.push(`Obra: ${eq.obra || ''}`);
-        const cidadeComRota = cidadeExibida + (rota ? ` (${rota})` : '');
-        linhas.push(`Cidade: ${cidadeComRota}`);
+        linhas.push(`Cidades: ${cidadesComRotas || ''}`);
         linhas.push(`Veículo: ${eq.veiculo || ''}`);
         linhas.push(`Equipe: ${eq.equipe.length ? eq.equipe.join(', ') : ''}`);
         linhas.push('');
@@ -863,27 +1051,13 @@
   }
 
   function gerar(){
-    const cards = Array.from(teamCardsEl.querySelectorAll('.team-card'));
-    let cidadeVazia = false;
-    cards.forEach(card => {
-      const cidadeSel = card.querySelector('.tc-cidade-select').value;
-      if (cidadeSel === '__outra__') {
-        const outraInput = card.querySelector('.tc-cidade-outra');
-        if (!outraInput.value.trim()) {
-          cidadeVazia = true;
-          outraInput.focus();
-          outraInput.style.borderColor = 'var(--danger)';
-          setTimeout(() => { outraInput.style.borderColor = ''; }, 2000);
-        }
-      }
-    });
-    if (cidadeVazia) {
-      showToast('Preencha o nome da cidade em "Outra".', true);
+    if (!dataEl.value){
+      showToast('Selecione uma data antes de gerar.', true);
+      dataEl.focus();
       return;
     }
-
     const equipes = todosCards();
-    if (!equipes.length || !equipes.some(eq => eq.lider || eq.cidade)){
+    if (!equipes.length || !equipes.some(eq => eq.lider || eq.cidades.length > 0)){
       showToast('Preencha ao menos um líder e uma cidade.', true);
       return;
     }
@@ -901,6 +1075,64 @@
     dataEl.value = todayISO(nextBusinessDay());
     resetCards();
     previewSection.classList.remove('show');
+  });
+
+  // ============================================================
+  //  Exportar e Importar dados (Backup)
+  // ============================================================
+  function exportData(){
+    const data = {
+      version: 1,
+      dataExport: new Date().toISOString(),
+      cad_lideres: cad.lideres,
+      cad_cidades: cad.cidades,
+      cad_veiculos: cad.veiculos,
+      cad_equipe: cad.equipe,
+      ultima_lista: JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null')
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'backup_equipes_' + todayISO(new Date()) + '.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('Dados exportados.');
+  }
+
+  function importData(file){
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = JSON.parse(e.target.result);
+        // dedupeESort evita entradas repetidas/desordenadas ao importar
+        // um backup de outro aparelho ou um arquivo editado manualmente.
+        if (data.cad_lideres) { cad.lideres = dedupeESort('lideres', data.cad_lideres); saveCad('lideres', cad.lideres); }
+        if (data.cad_cidades) { cad.cidades = dedupeESort('cidades', data.cad_cidades); saveCad('cidades', cad.cidades); }
+        if (data.cad_veiculos) { cad.veiculos = dedupeESort('veiculos', data.cad_veiculos); saveCad('veiculos', cad.veiculos); }
+        if (data.cad_equipe) { cad.equipe = dedupeESort('equipe', data.cad_equipe); saveCad('equipe', cad.equipe); }
+        if (data.ultima_lista) localStorage.setItem(STORAGE_KEY, JSON.stringify(data.ultima_lista));
+
+        ['lideres','cidades','veiculos','equipe'].forEach(refreshCadUI);
+        refreshAllTeamCardOptions();
+        showToast('Dados importados com sucesso.');
+      } catch (err) {
+        showToast('Arquivo inválido.', true);
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  $('btn-export').addEventListener('click', exportData);
+  $('btn-import').addEventListener('click', () => {
+    $('file-import').click();
+  });
+  $('file-import').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) importData(file);
+    e.target.value = '';
   });
 
   if('serviceWorker' in navigator){
