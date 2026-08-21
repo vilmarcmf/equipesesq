@@ -233,6 +233,26 @@
   .cad-add-row button{ flex-shrink:0; padding: 0 14px; font-size:13px; }
   .cad-empty{ color:var(--text-dim); font-size:13px; padding:8px 4px; font-style:italic; }
 
+  .hist-item{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    padding: 13px 4px; border-bottom: 1px solid var(--card-border); cursor:pointer;
+  }
+  .hist-item:last-child{ border-bottom:none; }
+  .hist-item:active{ background: var(--card2); }
+  .hist-item-main{ flex:1; min-width:0; }
+  .hist-item-data{ font-family: var(--mono); font-size: 13.5px; font-weight:700; color: var(--text); }
+  .hist-item-resumo{ font-size: 12.5px; color: var(--text-dim); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .hist-item-del{
+    background: transparent; border: 1px solid var(--card-border); color: var(--danger);
+    font-size: 13px; line-height: 1; padding: 6px 10px; border-radius: 7px; cursor:pointer; flex-shrink:0;
+  }
+  .hist-item-del:active{ transform: scale(0.96); }
+  #hist-detalhe-texto{
+    font-family: var(--sans); font-size: 14.5px; white-space: pre-wrap; word-wrap: break-word;
+    color: var(--text); line-height: 1.5; margin: 0 0 14px; background: #0E1729;
+    border: 1px solid var(--card-border); border-radius: 8px; padding: 14px;
+  }
+
   footer{
     text-align:center; color: var(--card-border); font-family: var(--mono); font-size: 10px;
     letter-spacing: .1em; text-transform: uppercase; margin-top: 28px;
@@ -250,6 +270,7 @@
 
   <div class="seg" id="tab-seg">
     <button type="button" class="seg-btn active" data-tab="prog">Programação</button>
+    <button type="button" class="seg-btn" data-tab="hist">Histórico</button>
     <button type="button" class="seg-btn" data-tab="cad">Cadastros</button>
   </div>
 
@@ -278,6 +299,23 @@
         <button class="btn-primary" id="btn-copiar">Copiar novamente</button>
         <button class="btn-ghost" id="btn-novo">Novo relatório</button>
       </div>
+    </div>
+  </div>
+
+  <!-- ===================== ABA HISTÓRICO ===================== -->
+  <div class="tab" id="tab-hist">
+    <div class="card" id="hist-detalhe-card" style="display:none;">
+      <label>Relatório</label>
+      <pre id="hist-detalhe-texto"></pre>
+      <div class="actions">
+        <button class="btn-primary" id="btn-hist-copiar">Copiar</button>
+        <button class="btn-ghost" id="btn-hist-voltar">Voltar à lista</button>
+      </div>
+    </div>
+
+    <div class="card" id="hist-lista-card">
+      <label>Relatórios salvos</label>
+      <div id="hist-lista"></div>
     </div>
   </div>
 
@@ -348,6 +386,13 @@
   const previewSection = $('preview-section'), previewEl = $('preview');
   const toastEl = $('toast');
   const STORAGE_KEY = 'equipes_ultima_lista';
+  const HIST_KEY = 'equipes_historico';
+  const HIST_MAX = 200; // limite de segurança para não estourar o localStorage
+
+  const histListaEl = $('hist-lista');
+  const histListaCard = $('hist-lista-card');
+  const histDetalheCard = $('hist-detalhe-card');
+  const histDetalheTexto = $('hist-detalhe-texto');
 
   const CAD_KEYS = { lideres:'cad_lideres', cidades:'cad_cidades', veiculos:'cad_veiculos', equipe:'cad_equipe' };
 
@@ -1028,6 +1073,118 @@
     return linhas.join('\n');
   }
 
+  // ============================================================
+  //  HISTÓRICO — guarda cada relatório gerado para consulta futura
+  // ============================================================
+  function loadHistorico(){
+    try{
+      const raw = localStorage.getItem(HIST_KEY);
+      if (raw) return JSON.parse(raw);
+    }catch(e){}
+    return [];
+  }
+  function saveHistorico(lista){
+    try{ localStorage.setItem(HIST_KEY, JSON.stringify(lista)); }catch(e){}
+  }
+
+  // Salva um relatório no histórico. Se já existir um registro para a
+  // mesma data (ex.: gerado de novo depois de ajustar algo), substitui
+  // o anterior em vez de duplicar — assim a consulta por dia fica limpa.
+  function salvarNoHistorico(dataISO, texto, equipes){
+    const lista = loadHistorico();
+    const resumoLideres = equipes
+      .filter(eq => eq.lider || eq.cidades.length)
+      .map(eq => eq.lider || '(sem líder)')
+      .join(', ');
+    const registro = {
+      id: (dataISO || 'sem-data') + '_' + Date.now(),
+      dataISO: dataISO || '',
+      geradoEm: new Date().toISOString(),
+      texto,
+      resumo: resumoLideres
+    };
+    const idxExistente = lista.findIndex(r => r.dataISO && dataISO && r.dataISO === dataISO);
+    if (idxExistente > -1){
+      lista[idxExistente] = registro;
+    } else {
+      lista.push(registro);
+    }
+    lista.sort((a,b) => (b.dataISO || '').localeCompare(a.dataISO || '') || (b.geradoEm||'').localeCompare(a.geradoEm||''));
+    if (lista.length > HIST_MAX) lista.length = HIST_MAX;
+    saveHistorico(lista);
+    renderHistorico();
+  }
+
+  function formatarDataBR(dataISO){
+    if (!dataISO) return 'Sem data';
+    const [y,m,d] = dataISO.split('-');
+    if (!y || !m || !d) return dataISO;
+    return `${d}/${m}/${y}`;
+  }
+
+  function renderHistorico(){
+    const lista = loadHistorico();
+    histListaEl.innerHTML = '';
+    if (!lista.length){
+      histListaEl.innerHTML = '<div class="cad-empty">Nenhum relatório salvo ainda. Gere uma programação para começar a guardar o histórico.</div>';
+      return;
+    }
+    lista.forEach(reg => {
+      const item = document.createElement('div');
+      item.className = 'hist-item';
+
+      const main = document.createElement('div');
+      main.className = 'hist-item-main';
+      const dataDiv = document.createElement('div');
+      dataDiv.className = 'hist-item-data';
+      dataDiv.textContent = formatarDataBR(reg.dataISO);
+      const resumoDiv = document.createElement('div');
+      resumoDiv.className = 'hist-item-resumo';
+      resumoDiv.textContent = reg.resumo || '—';
+      main.appendChild(dataDiv);
+      main.appendChild(resumoDiv);
+
+      const delBtn = document.createElement('button');
+      delBtn.type = 'button';
+      delBtn.className = 'hist-item-del';
+      delBtn.textContent = '✕';
+      delBtn.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        excluirDoHistorico(reg.id);
+      });
+
+      main.addEventListener('click', () => abrirDetalheHistorico(reg));
+
+      item.appendChild(main);
+      item.appendChild(delBtn);
+      histListaEl.appendChild(item);
+    });
+  }
+
+  function excluirDoHistorico(id){
+    const lista = loadHistorico().filter(r => r.id !== id);
+    saveHistorico(lista);
+    renderHistorico();
+    showToast('Relatório removido do histórico.');
+  }
+
+  function abrirDetalheHistorico(reg){
+    histDetalheTexto.textContent = reg.texto;
+    histDetalheTexto.dataset.texto = reg.texto;
+    histListaCard.style.display = 'none';
+    histDetalheCard.style.display = 'block';
+  }
+
+  $('btn-hist-voltar').addEventListener('click', () => {
+    histDetalheCard.style.display = 'none';
+    histListaCard.style.display = 'block';
+  });
+  $('btn-hist-copiar').addEventListener('click', () => {
+    copiar(histDetalheTexto.dataset.texto || histDetalheTexto.textContent);
+  });
+
+  renderHistorico();
+
   function showToast(msg, isErr){
     toastEl.textContent = msg;
     toastEl.classList.toggle('err', !!isErr);
@@ -1066,6 +1223,7 @@
     previewEl.textContent = texto;
     previewSection.classList.add('show');
     previewSection.scrollIntoView({behavior:'smooth', block:'start'});
+    salvarNoHistorico(dataEl.value, texto, equipes);
     copiar(texto);
   }
 
@@ -1088,7 +1246,8 @@
       cad_cidades: cad.cidades,
       cad_veiculos: cad.veiculos,
       cad_equipe: cad.equipe,
-      ultima_lista: JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null')
+      ultima_lista: JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null'),
+      historico: loadHistorico()
     };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -1114,6 +1273,18 @@
         if (data.cad_veiculos) { cad.veiculos = dedupeESort('veiculos', data.cad_veiculos); saveCad('veiculos', cad.veiculos); }
         if (data.cad_equipe) { cad.equipe = dedupeESort('equipe', data.cad_equipe); saveCad('equipe', cad.equipe); }
         if (data.ultima_lista) localStorage.setItem(STORAGE_KEY, JSON.stringify(data.ultima_lista));
+        if (Array.isArray(data.historico)){
+          // Mescla o histórico importado com o já existente no aparelho,
+          // evitando duplicar registros que tenham o mesmo id.
+          const atual = loadHistorico();
+          const porId = new Map(atual.map(r => [r.id, r]));
+          data.historico.forEach(r => { if (r && r.id) porId.set(r.id, r); });
+          const mesclado = Array.from(porId.values())
+            .sort((a,b) => (b.dataISO || '').localeCompare(a.dataISO || '') || (b.geradoEm||'').localeCompare(a.geradoEm||''));
+          if (mesclado.length > HIST_MAX) mesclado.length = HIST_MAX;
+          saveHistorico(mesclado);
+          renderHistorico();
+        }
 
         ['lideres','cidades','veiculos','equipe'].forEach(refreshCadUI);
         refreshAllTeamCardOptions();
