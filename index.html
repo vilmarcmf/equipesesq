@@ -127,6 +127,11 @@
   .chip.qa-chip{ border-style:dashed; border-color:var(--accent-dim); color:var(--accent); }
   .chip:active{ transform: scale(0.96); }
   .chip.has-dup{ border-color: #FBBF24; }
+  /* Chip "órfão": nome selecionado neste card mas fora do cadastro atual
+     de ajudantes (ex.: virou líder e saiu de cad_equipe). Fica sempre
+     visível e em destaque para não repetir o bug de nomes invisíveis
+     que ainda entravam no texto gerado. */
+  .chip.chip-orfao{ background:#4A1D1D; border-color:#F87171; color:#FCA5A5; }
 
   /* --- Combobox de busca (usado no seletor de cidades) --- */
   .selected-chips{ display:flex; flex-wrap:wrap; gap:6px; margin-bottom: 8px; }
@@ -750,13 +755,30 @@
   }
 
   // Renderiza chips de ajudantes (lista costuma ser pequena, mantida como chips fixos)
+  //
+  // IMPORTANTE: além dos nomes cadastrados em cad.equipe, também desenhamos
+  // como chip qualquer nome que já esteja selecionado neste card mas que não
+  // está (mais) em cad.equipe — um "órfão". Isso acontece, por exemplo,
+  // quando alguém era ajudante, foi promovido a líder e removido do
+  // cadastro de ajudantes: o nome antigo pode continuar salvo dentro do
+  // card (vindo de "Carregar Último"/histórico) mesmo sem chip visível.
+  // Sem essa checagem, o nome ficava invisível na tela mas ainda entrava
+  // no texto gerado — exatamente o bug do Hugo. Mostrando o órfão em
+  // destaque, com opção de remover, a UI nunca mais "mente" sobre o que
+  // vai para o texto final.
   function renderChips(card){
     const wrap = card.querySelector('.chips-wrap');
     const selecionados = card._equipeSelecionada;
+    const liderAtual = card.querySelector('.tc-lider') ? card.querySelector('.tc-lider').value : '';
     let html = '';
     cad.equipe.forEach(nome => {
       const sel = selecionados.has(nome) ? 'selected' : '';
       html += `<button type="button" class="chip ${sel}" data-nome="${nome}">${nome}</button>`;
+    });
+    // Nomes selecionados que não estão (mais) no cadastro de ajudantes.
+    const orfaos = Array.from(selecionados).filter(nome => !cad.equipe.includes(nome));
+    orfaos.forEach(nome => {
+      html += `<button type="button" class="chip selected chip-orfao" data-nome="${nome}" title="Este nome não está mais no cadastro de ajudantes. Clique para remover daqui.">${nome} ⚠</button>`;
     });
     html += `<button type="button" class="chip qa-chip" data-qa="equipe">+ Novo</button>`;
     wrap.innerHTML = html;
@@ -764,11 +786,24 @@
       chip.addEventListener('click', () => {
         const nome = chip.dataset.nome;
         if (selecionados.has(nome)) selecionados.delete(nome); else selecionados.add(nome);
-        chip.classList.toggle('selected');
+        renderChips(card);
         checkDuplicatas();
       });
     });
     wrap.querySelector('.qa-chip').addEventListener('click', () => abrirQuickAddEquipe(card));
+
+    // Se o líder deste card também estiver marcado como ajudante do mesmo
+    // card, avisa — evita o caso de alguém ser líder e ajudante de si
+    // mesmo na mesma equipe, que foi a origem do dado incorreto do Hugo.
+    const warnLiderEquipe = card.querySelector('.dup-warning-lider-equipe');
+    if (warnLiderEquipe){
+      if (liderAtual && selecionados.has(liderAtual)){
+        warnLiderEquipe.style.display = '';
+        warnLiderEquipe.textContent = `⚠ ${liderAtual} está marcado como líder e como ajudante nesta mesma equipe`;
+      } else {
+        warnLiderEquipe.style.display = 'none';
+      }
+    }
   }
 
   function abrirQuickAddEquipe(card){
@@ -916,6 +951,7 @@
           <label>Equipe (ajudantes)</label>
           <div class="chips chips-wrap"></div>
           <div class="dup-warning dup-warning-equipe" style="display:none;"></div>
+          <div class="dup-warning dup-warning-lider-equipe" style="display:none;"></div>
         </div>
       `;
 
@@ -929,7 +965,7 @@
         addTeamCard(atual, true);
         renumerar();
       });
-      card.querySelector('.tc-lider').addEventListener('change', checkDuplicatas);
+      card.querySelector('.tc-lider').addEventListener('change', () => { renderChips(card); checkDuplicatas(); });
       card.querySelector('.tc-veiculo').addEventListener('change', checkDuplicatas);
 
       const cidadeInput = card.querySelector('.tc-cidade-search');
